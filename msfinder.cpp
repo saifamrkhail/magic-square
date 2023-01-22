@@ -30,10 +30,10 @@ class MagicSquares {
 
 int main() {
     // reading N
-    int N = 5;
+    int N = 6;
 
     // Initialize a population of magic squares with randomly generated values
-    MagicSquares squares(N, 5000);
+    MagicSquares squares(N, 100000);
 
     long int i = 0;
 
