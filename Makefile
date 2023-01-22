@@ -1,4 +1,4 @@
-all: clean msfinder run
+all: msfinder run
 
 msfinder:
 	g++ -o2 -Wall -fopenmp msfinder.cpp -o msfinder
