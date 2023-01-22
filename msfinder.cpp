@@ -93,33 +93,33 @@ MagicSquares::MagicSquares(int N, int size) {  // creating random squares
 }
 
 void MagicSquares::calFit() {  // calculate the fitness of all squares
-    int error;
-    int first_row;
+    int error = 0;
+    const int magic_constant = (m_N * (m_N * m_N + 1)) / 2;
     int val;
-    for (int i = 0; i < m_size; ++i) {
-        first_row = 0;
-        // first row as set point
-        for (int j = 0; j < m_N; ++j) {
-            first_row += m_squares[i][j];
-        }
+    #pragma omp parallel for reduction(+:error)
+    for (int i = 0; i < m_size; ++i) {  
         error = 0;
         // error in rows
         for (int j = 1; j < m_N; ++j) {
             val = 0;
+            #pragma omp parallel for reduction(+:val)
             for (int k = 0; k < m_N; ++k) {
                 val += m_squares[i][j * m_N + k];
             }
-            error += abs(first_row - val);
+            error += abs(magic_constant - val);
         }
         // error in columns
         for (int j = 0; j < m_N; ++j) {
             val = 0;
+             #pragma omp parallel for reduction(+:val)
             for (int k = 0; k < m_N; ++k) {
                 val += m_squares[i][k * m_N + j];
             }
-            error += abs(first_row - val);
+            error += abs(magic_constant - val);
         }
+
         m_fitness[i] = error;
+        
         if (error == 0) {
             this->print(i);  // if error=0 the square is magic, print it!
         }
@@ -189,8 +189,6 @@ void MagicSquares::breed() {
     mt19937 gen(rd());
     uniform_int_distribution<> dis(0, 1);
     uniform_int_distribution<> dis1(0, m_size / 4 - 1);
-#pragma omp parallel
-#pragma omp for
     for (int i = m_size / 4; i < m_size; ++i) {
         // cout << "breed1, " << i << ": ";
         if (dis(gen) ==
@@ -204,8 +202,6 @@ void MagicSquares::breed() {
                             dis1(gen));  // crossover of two "good" squares
         }
     }
-
-#pragma omp for
     // mutate the best 25% (saved first in the array)
     for (int i = 0; i < m_size / 4; ++i) {
         // cout << "breed 2, " << i << endl;
