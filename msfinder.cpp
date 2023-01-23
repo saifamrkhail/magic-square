@@ -7,11 +7,13 @@
 #include <random>
 using namespace std;
 
+void quickSort(int *fitness, int population, int square, int **squares, int left, int right);
+
 class MagicSquares {
    private:
     int m_N;
-    int m_arrN;
-    int m_size;
+    int m_square;
+    int m_population;
     int **m_squares;
     int *m_fitness;
 
@@ -20,18 +22,16 @@ class MagicSquares {
     void calFit();
     void printFirst();
     int getFit(int pos);
-    void Sort();
     void breed();
     void mutate(int i);
     void copy(int i, int j);
-    void swap(int i, int j);
     void crossOver(int n, int i, int j);
     void print(int i);
 };
 
 int main(int argc, char *argv[]) {
-    int N = 4;
-    int population = 10000;
+    int N = 3;
+    int population = 100000;
     int del = 1000;
 
     /*###########################
@@ -189,19 +189,20 @@ int main(int argc, char *argv[]) {
 
 MagicSquares::MagicSquares(int N, int size) {  // creating random squares
     m_N = N;
-    m_size = size;
-    m_arrN = m_N * m_N;
-    m_squares = new int *[m_size];
-    m_fitness = new int[m_size];
+    m_population = size;
+    m_square = m_N * m_N;
+    m_squares = new int *[m_population];
+    m_fitness = new int[m_population];
     random_device rd;
     mt19937 gen(rd());
-    #pragma omp parallel for
-    for (int i = 0; i < m_size; i++) {
-        m_squares[i] = new int[m_arrN];
-        for (int j = 0; j < m_arrN; j++) {
+    //multithreading is unsafe here 
+    //#pragma omp parallel for
+    for (int i = 0; i < m_population; i++) {
+        m_squares[i] = new int[m_square];
+        for (int j = 0; j < m_square; j++) {
             m_squares[i][j] = j + 1;
         }
-        shuffle(m_squares[i], m_squares[i] + m_arrN, gen);
+        shuffle(m_squares[i], m_squares[i] + m_square, gen);
     }
 }
 
@@ -210,7 +211,7 @@ void MagicSquares::calFit() {  // calculate the fitness of all squares
     const int magic_constant = (m_N * (m_N * m_N + 1)) / 2;
     int val;
     #pragma omp parallel for reduction(+ : error)
-    for (int i = 0; i < m_size; ++i) {
+    for (int i = 0; i < m_population; ++i) {
         error = 0;
         // error in rows
         for (int j = 1; j < m_N; ++j) {
@@ -240,22 +241,12 @@ void MagicSquares::calFit() {  // calculate the fitness of all squares
 }
 // print the first square, for troubleshooting
 void MagicSquares::printFirst() {  
-    for (int j = 0; j < m_arrN; ++j) {
+    for (int j = 0; j < m_square; ++j) {
         cout << m_squares[0][j] << " ";
     }
 }
 
 int MagicSquares::getFit(int pos) { return m_fitness[pos]; }
-
-void MagicSquares::Sort() {  // sort the squares by their fitness
-    for (int i = 0; i < m_size; ++i) {
-        for (int j = 0; j < m_size - i - 1; ++j) {
-            if (m_fitness[j] > m_fitness[j + 1]) {
-                this->swap(j, j + 1);
-            }
-        }
-    }
-}
 
 // note: in mutate() and copy() the fitness does not change, as it will be
 // calculated in the next iteration in main().
@@ -265,7 +256,7 @@ void MagicSquares::Sort() {  // sort the squares by their fitness
 void MagicSquares::mutate(int i) {  // mutate i by swapping two random numbers
     random_device rd;
     mt19937 gen(rd());
-    uniform_int_distribution<> dis(0, m_arrN - 1);
+    uniform_int_distribution<> dis(0, m_square - 1);
     int index1 = dis(gen);
     int index2 = dis(gen);
     int buffer = m_squares[i][index1];
@@ -274,35 +265,25 @@ void MagicSquares::mutate(int i) {  // mutate i by swapping two random numbers
 }
 
 void MagicSquares::copy(int i, int j) {  // copy from i to j (j gets ereased)
-    for (int k = 0; k < m_arrN; ++k) {
+    for (int k = 0; k < m_square; ++k) {
         m_squares[j][k] = m_squares[i][k];
     }
 }
 
-void MagicSquares::swap(int i, int j) {  // swapping the i-th and j-th square
-    int buffer;
-    for (int k = 0; k < m_arrN; ++k) {
-        buffer = m_squares[i][k];
-        m_squares[i][k] = m_squares[j][k];
-        m_squares[j][k] = buffer;
-    }
-    int buf = m_fitness[i];
-    m_fitness[i] = m_fitness[j];
-    m_fitness[j] = buf;
-}
-
 void MagicSquares::breed() {
     // sort the squares by their fitness from best to worst
-    this->Sort();
+    //this->Sort();
+
+    quickSort(m_fitness, m_population, m_square, m_squares, 0, m_population - 1);
 
     // fill the later (worse) 75% of the squares with either mutation
     // of "good ones" (from the better 25%) or crossover of two "good" ones
     random_device rd;
     mt19937 gen(rd());
     uniform_int_distribution<> dis(0, 1);
-    uniform_int_distribution<> dis1(0, m_size / 4 - 1);
+    uniform_int_distribution<> dis1(0, m_population / 4 - 1);
     #pragma omp parallel for
-    for (int i = m_size / 4; i < m_size; ++i) {
+    for (int i = m_population / 4; i < m_population; ++i) {
         if (dis(gen) == 0) {  // mutation of a "good" square (first copy then mutate)
             this->copy(dis1(gen), i);
             this->mutate(i);
@@ -313,25 +294,24 @@ void MagicSquares::breed() {
 
     // mutate the best the worse 60% of the best 25%
     #pragma omp parallel for
-    for (int i = m_size / 10; i < m_size / 4; ++i) {
+    for (int i = m_population / 10; i < m_population / 4; ++i) {
         this->mutate(i);
     }
 }
 
-void MagicSquares::crossOver(int n, int i,
-                             int j) {  // save crossover of i and j in n
-    // more detailed description of the crossover function is in the PDF
-
-    int invi[m_arrN];
-    int invj[m_arrN];
-    int invn[m_arrN];
-    for (int k = 0; k < m_arrN; ++k) {
+// save crossover of i and j in n
+// more detailed description of the crossover function is in the PDF
+void MagicSquares::crossOver(int n, int i, int j) {  
+    int invi[m_square];
+    int invj[m_square];
+    int invn[m_square];
+    for (int k = 0; k < m_square; ++k) {
         invi[k] = 0;
         invj[k] = 0;
     }
 
     // calculating inversion sequences of i and j
-    for (int k1 = 1; k1 <= m_arrN; ++k1) {
+    for (int k1 = 1; k1 <= m_square; ++k1) {
         for (int k2 = 0; m_squares[i][k2] != k1; ++k2) {
             if (m_squares[i][k2] > k1) {
                 invi[k1]++;
@@ -347,23 +327,23 @@ void MagicSquares::crossOver(int n, int i,
     // generating random pivot index
     random_device rd;
     mt19937 gen(rd());
-    uniform_int_distribution<> dis(0, m_arrN - 1);
+    uniform_int_distribution<> dis(0, m_square - 1);
     int pivot = dis(gen);
 
     // one-point crossover of the inversion sequences
     for (int k = 0; k < pivot; ++k) {
         invn[k] = invi[k];
     }
-    for (int k = pivot; k < m_arrN; ++k) {
+    for (int k = pivot; k < m_square; ++k) {
         invn[k] = invj[k];
     }
 
     // generating n with its inversion sequence
-    for (int k = 0; k < m_arrN; ++k) {
+    for (int k = 0; k < m_square; ++k) {
         m_squares[n][k] = 0;
     }
-    for (int k1 = 1; k1 <= m_arrN; ++k1) {
-        for (int k2 = 0; k2 < m_arrN; ++k2) {
+    for (int k1 = 1; k1 <= m_square; ++k1) {
+        for (int k2 = 0; k2 < m_square; ++k2) {
             if (m_squares[n][k2] == 0 && invn[k1 - 1] == 0) {
                 m_squares[n][k2] = k1;
                 break;
@@ -390,4 +370,30 @@ void MagicSquares::print(int i) {  // print the i-th square
     }
     cout << endl;
     exit(0);
+}
+
+void quickSort(int *fitness, int population, int square, int **squares, int left, int right) {
+    int i = left;
+    int j = right;
+    int pivot = fitness[(left + right) / 2];
+    while (i <= j) {
+        while (fitness[i] < pivot) {
+            i++;
+        }
+        while (fitness[j] > pivot) {
+            j--;
+        }
+        if (i <= j) {
+            swap(fitness[i], fitness[j]);
+            swap(squares[i], squares[j]);
+            i++;
+            j--;
+        }
+    }
+    if (left < j) {
+        quickSort(fitness, population, square, squares, left, j);
+    }
+    if (i < right) {
+        quickSort(fitness, population, square, squares, i, right);
+    }
 }
