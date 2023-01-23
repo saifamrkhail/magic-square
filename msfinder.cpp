@@ -30,8 +30,8 @@ class MagicSquares {
 };
 
 int main(int argc, char *argv[]) {
-    int N = 6;
-    int population = 100000;
+    int N = 4;
+    int population = 10000;
     int del = 1000;
 
     /*###########################
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
                     } else if (N == 4) {
                         population = 1000;
                     } else if (N == 5) {
-                        population = 50000;
+                        population = 10000;
                     }
 
                     if (N > 4) {
@@ -311,9 +311,9 @@ void MagicSquares::breed() {
         }
     }
 
-    // mutate the best 25%
+    // mutate the best the worse 60% of the best 25%
     #pragma omp parallel for
-    for (int i = 0; i < m_size / 4; ++i) {
+    for (int i = m_size / 10; i < m_size / 4; ++i) {
         this->mutate(i);
     }
 }
