@@ -390,10 +390,16 @@ void quickSort(int *fitness, int population, int square, int **squares, int left
             j--;
         }
     }
-    if (left < j) {
-        quickSort(fitness, population, square, squares, left, j);
+    #pragma omp parallel sections
+    {
+        #pragma omp section
+        if (left < j) {
+            quickSort(fitness, population, square, squares, left, j);
+        }
+        #pragma omp section
+        if (i < right) {
+            quickSort(fitness, population, square, squares, i, right);
+        }
     }
-    if (i < right) {
-        quickSort(fitness, population, square, squares, i, right);
-    }
+   
 }
