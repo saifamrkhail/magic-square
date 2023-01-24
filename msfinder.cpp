@@ -164,6 +164,11 @@ int main(int argc, char *argv[]) {
         // parents to create a new population of magic squares, using crossover
         // and mutation to introduce genetic variation. Mutate the parents, leave the best 1/10 untouched.
         squares.breed();
+
+        /*output as in the PDF, for trakcing of the fitness
+        if (i % 10 == 0) {
+            cout << i << ":  fitness: " << squares.getFit(0) << endl;
+        }*/
     }
 
     return 0;
