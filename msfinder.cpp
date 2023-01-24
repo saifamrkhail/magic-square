@@ -20,7 +20,7 @@ class MagicSquares {
     int *m_fitness;
 
    public:
-    MagicSquares(int N, int size);
+    MagicSquares(int N, int population);
     void calFit();
     void printFirst();
     int getFit(int pos);
@@ -33,8 +33,7 @@ class MagicSquares {
 
 int main(int argc, char *argv[]) {
     int N = 3;
-    int population = 100000;
-    //int del = 1000;
+    int population = 10000;
 
     /*###########################
     parse command line arguments
@@ -49,8 +48,7 @@ int main(int argc, char *argv[]) {
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        arguments =
-            getopt_long(argc, argv, "hn:p:", long_options, &option_index);
+        arguments = getopt_long(argc, argv, "hn:p:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (arguments == -1) {
@@ -92,10 +90,6 @@ int main(int argc, char *argv[]) {
                     } else if (N == 5) {
                         population = 10000;
                     }
-
-                    /*if (N > 4) {
-                        del = 10;
-                    }*/
          
                 } catch (const std::invalid_argument &e) {
                     std::cerr << "Invalid argument for dimension: " << optarg
@@ -159,8 +153,6 @@ int main(int argc, char *argv[]) {
     // Initialize a population of magic squares with randomly generated values
     MagicSquares squares(N, population);
 
-    // loop until magic square is found
-    //long int i = 0;
     while (true) {
         // Evaluate the fitness of each square in the population,
         // using a function (sum of absolute errors of rows and columns) that
@@ -170,30 +162,22 @@ int main(int argc, char *argv[]) {
         // Select the most fit individuals (25%) from the current population to
         // serve as parents for the next generation and breed the selected
         // parents to create a new population of magic squares, using crossover
-        // and mutation to introduce genetic variation. Mutate the parents.
+        // and mutation to introduce genetic variation. Mutate the parents, leave the best 1/10 untouched.
         squares.breed();
-
-        // every del loops print the fitness of the best square for better
-        // tracking of the programm
-        /*if (i % del == 0 && 10 > 6) {
-            cout << "\033[2J\033[1;1H";
-            cout << i << ":\t fitness:\t" << squares.getFit(0) << endl;
-        }*/
-        //++i;
     }
+
     return 0;
 }
 
-MagicSquares::MagicSquares(int N, int size) {  // creating random squares
+// creating random squares
+MagicSquares::MagicSquares(int N, int population) {  
     m_N = N;
-    m_population = size;
+    m_population = population;
     m_square = m_N * m_N;
     m_squares = new int *[m_population];
     m_fitness = new int[m_population];
     random_device rd;
     mt19937 gen(rd());
-    //multithreading is unsafe here 
-    //#pragma omp parallel for
     for (int i = 0; i < m_population; i++) {
         m_squares[i] = new int[m_square];
         for (int j = 0; j < m_square; j++) {
@@ -203,8 +187,8 @@ MagicSquares::MagicSquares(int N, int size) {  // creating random squares
     }
 }
 
-void MagicSquares::calFit() {  // calculate the fitness of all squares
-
+// calculate the fitness of all squares
+void MagicSquares::calFit() {
     int error = 0;
     const int magic_constant = (m_N * (m_N * m_N + 1)) / 2;
     int row_sum, col_sum;
@@ -237,10 +221,10 @@ int MagicSquares::getFit(int pos) { return m_fitness[pos]; }
 
 // note: in mutate() and copy() the fitness does not change, as it will be
 // calculated in the next iteration in main().
-// in swap() the fitness will be swapped also, as it is used in the sorting
-// subroutine
+// in swap() the fitness will be swapped also, as it is used in the sorting subroutine
 
-void MagicSquares::mutate(int i) {  // mutate i by swapping two random numbers
+// mutate i by swapping two random numbers
+void MagicSquares::mutate(int i) {  
     random_device rd;
     mt19937 gen(rd());
     uniform_int_distribution<> dis(0, m_square - 1);
@@ -250,8 +234,8 @@ void MagicSquares::mutate(int i) {  // mutate i by swapping two random numbers
     m_squares[i][index1] = m_squares[i][index2];
     m_squares[i][index2] = buffer;
 }
-
-void MagicSquares::copy(int i, int j) {  // copy from i to j (j gets ereased)
+// copy from i to j (j gets ereased)
+void MagicSquares::copy(int i, int j) {  
     for (int k = 0; k < m_square; ++k) {
         m_squares[j][k] = m_squares[i][k];
     }
@@ -259,8 +243,6 @@ void MagicSquares::copy(int i, int j) {  // copy from i to j (j gets ereased)
 
 void MagicSquares::breed() {
     // sort the squares by their fitness from best to worst
-    //this->Sort();
-
     quickSort(m_fitness, m_population, m_square, m_squares, 0, m_population - 1);
 
     // fill the later (worse) 75% of the squares with either mutation
