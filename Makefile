@@ -1,10 +1,9 @@
-all: clean msfinder run 
+CXX = g++
+CXXFLAGS = -O2 -Wall -fopenmp
 
-msfinder:
-	g++ -o2 -Wall -fopenmp msfinder.cpp -o msfinder
+msfinder: msfinder.cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@
 
-run:
-	./msfinder
-
+.PHONY: clean
 clean:
-	rm msfinder
+	rm -f msfinder

@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <random>
+
 using namespace std;
 
 void quickSort(int *fitness, int population, int square, int **squares, int left, int right);
