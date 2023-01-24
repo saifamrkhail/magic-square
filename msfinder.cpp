@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
 #include <random>
 
 using namespace std;
@@ -33,7 +34,7 @@ class MagicSquares {
 int main(int argc, char *argv[]) {
     int N = 3;
     int population = 100000;
-    int del = 1000;
+    //int del = 1000;
 
     /*###########################
     parse command line arguments
@@ -58,17 +59,17 @@ int main(int argc, char *argv[]) {
 
         switch (arguments) {
             case 'h': {
-                cout << "usage:" << endl;
-                cout << "msfinder [--dimension | -n <number>] [--population | "
-                        "-p <number>]"
+                cout << endl;
+                cout << "msfinder -n <number> -p <number>"
                      << endl;
-                cout << "[--dimension | -d] <number> (the dimension of the "
-                        "maqic square to search for (3x3, 4x4, 5x5, ..)), by "
+                cout << "[--dimension | -d] <number> \t the dimension of the "
+                        "maqic square (3x3, 4x4, 5x5, ..), "
                         "default 3"
                      << endl;
-                cout << "[--population | -p] <number> (the population size, by "
-                        "default 100000)"
+                cout << "[--population | -p] <number> \t the population size, "
+                        "default 100000"
                      << endl;
+                cout << endl;
                 exit(1);
             }
 
@@ -83,11 +84,6 @@ int main(int argc, char *argv[]) {
                 }
                 try {
                     N = stoi(optarg);
-                    if (N < 3 || N > 10) {
-                        cout << "WARNING: N is out of range, programm might "
-                                "not work."
-                             << endl;
-                    }
                     //adjust population size to dimension size
                     if (N == 3) {
                         population = 500;
@@ -97,9 +93,9 @@ int main(int argc, char *argv[]) {
                         population = 10000;
                     }
 
-                    if (N > 4) {
+                    /*if (N > 4) {
                         del = 10;
-                    }
+                    }*/
          
                 } catch (const std::invalid_argument &e) {
                     std::cerr << "Invalid argument for dimension: " << optarg
@@ -164,7 +160,7 @@ int main(int argc, char *argv[]) {
     MagicSquares squares(N, population);
 
     // loop until magic square is found
-    long int i = 0;
+    //long int i = 0;
     while (true) {
         // Evaluate the fitness of each square in the population,
         // using a function (sum of absolute errors of rows and columns) that
@@ -177,13 +173,13 @@ int main(int argc, char *argv[]) {
         // and mutation to introduce genetic variation. Mutate the parents.
         squares.breed();
 
-        // every 100 loops print the fitness of the best square for better
+        // every del loops print the fitness of the best square for better
         // tracking of the programm
-        if (i % del == 0) {
-            cout << i << ":  fitness: " << squares.getFit(0) << endl;
-        }
-
-        ++i;
+        /*if (i % del == 0 && 10 > 6) {
+            cout << "\033[2J\033[1;1H";
+            cout << i << ":\t fitness:\t" << squares.getFit(0) << endl;
+        }*/
+        //++i;
     }
     return 0;
 }
@@ -362,14 +358,29 @@ void MagicSquares::crossOver(int n, int i, int j) {
 }
 
 void MagicSquares::print(int i) {  // print the i-th square
-    cout << "Magic Square Alarm!" << endl;
+    std::ofstream output_file("magic-squares.txt", std::ios::app);
+    if (!output_file.is_open()) {
+        cerr << "Error opening file" << endl;
+        exit(1);
+    }
+    cout << "Magic Square " << m_N<<"x"<< m_N << endl;
+    output_file << "Magic Square " << m_N<<"x"<< m_N << endl;
+
     for (int k = 0; k < m_N; ++k) {
         for (int j = 0; j < m_N; ++j) {
             cout << m_squares[i][k * m_N + j] << " ";
+            output_file << m_squares[i][k * m_N + j] << " ";
         }
         cout << endl;
+        output_file << endl;
     }
     cout << endl;
+    output_file << endl;
+    output_file.close();
+    if(!output_file.good()) {
+        cerr << "Error writing to file" << endl;
+        exit(1);
+    }
     exit(0);
 }
 
