@@ -204,33 +204,23 @@ MagicSquares::MagicSquares(int N, int size) {  // creating random squares
 }
 
 void MagicSquares::calFit() {  // calculate the fitness of all squares
+
     int error = 0;
     const int magic_constant = (m_N * (m_N * m_N + 1)) / 2;
-    int val;
+    int row_sum, col_sum;
     #pragma omp parallel for reduction(+ : error)
     for (int i = 0; i < m_population; ++i) {
         error = 0;
-        // error in rows
-        for (int j = 1; j < m_N; ++j) {
-            val = 0;
-            #pragma omp parallel for reduction(+ : val)
-            for (int k = 0; k < m_N; ++k) {
-                val += m_squares[i][j * m_N + k];
-            }
-            error += abs(magic_constant - val);
-        }
-        // error in columns
         for (int j = 0; j < m_N; ++j) {
-            val = 0;
-            #pragma omp parallel for reduction(+ : val)
+            row_sum = 0;
+            col_sum = 0;
             for (int k = 0; k < m_N; ++k) {
-                val += m_squares[i][k * m_N + j];
+                row_sum += m_squares[i][j * m_N + k];
+                col_sum += m_squares[i][k * m_N + j];
             }
-            error += abs(magic_constant - val);
+            error += abs(magic_constant - row_sum) + abs(magic_constant - col_sum);
         }
         m_fitness[i] = error;
-
-        // if error=0 the square is a magic square, print it!
         if (error == 0) {
             this->print(i);
         }
